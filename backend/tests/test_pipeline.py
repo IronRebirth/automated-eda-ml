@@ -150,6 +150,45 @@ def test_ml_pipeline_runs_end_to_end():
         >= 0
     )
 
+    # 5.7: structured explainability summary
+    assert "summary" in explainability
+
+    summary = explainability["summary"]
+
+    assert "top_n" in summary
+    assert "features" in summary
+    assert summary["top_n"] > 0
+    assert len(summary["features"]) == summary["top_n"]
+
+    first_feature = summary["features"][0]
+
+    assert "rank" in first_feature
+    assert "feature" in first_feature
+    assert "importance" in first_feature
+    assert "relative_importance" in first_feature
+    assert "impact" in first_feature
+
+    assert first_feature["rank"] == 1
+    assert first_feature["importance"] >= 0
+    assert 0 <= first_feature["relative_importance"] <= 1
+    assert first_feature["impact"] in {
+        "high",
+        "medium",
+        "low",
+    }
+
+    # 5.7: human-readable explainability insights
+    assert "insights" in explainability
+
+    insights = explainability["insights"]
+
+    assert isinstance(insights, list)
+    assert len(insights) > 0
+    assert all(
+        isinstance(insight, str)
+        for insight in insights
+    )
+
 
 def test_ml_pipeline_detects_regression():
     dataframe = pd.DataFrame(
@@ -220,3 +259,19 @@ def test_ml_pipeline_detects_regression():
     assert "xgboost" in result["cross_validation"]
 
     assert len(result["leaderboard"]) == 3
+
+    assert "explainability" in result
+
+    explainability = result["explainability"]
+
+    assert "summary" in explainability
+    assert "insights" in explainability
+
+    assert explainability["summary"]["top_n"] > 0
+    assert len(explainability["summary"]["features"]) > 0
+
+    assert isinstance(
+        explainability["insights"],
+        list,
+    )
+    assert len(explainability["insights"]) > 0
