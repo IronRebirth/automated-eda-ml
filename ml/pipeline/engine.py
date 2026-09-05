@@ -83,7 +83,7 @@ class MLPipeline:
 
         cross_validation_results = cross_validate_models(
             models,
-            X_train_transformed,
+            X_train,
             y_train,
             task_type,
             cv=self.cv,
@@ -103,7 +103,7 @@ class MLPipeline:
             "xgboost": optimize_xgboost,
         }.items():
             optimization_results[model_name] = optimizer(
-                X_train_transformed,
+                X_train,
                 y_train,
                 task_type,
                 n_trials=self.optimization_trials,

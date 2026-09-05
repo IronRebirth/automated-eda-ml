@@ -5,7 +5,10 @@ from sklearn.model_selection import (
     StratifiedKFold,
     cross_val_score,
 )
+from sklearn.pipeline import Pipeline
 from xgboost import XGBClassifier, XGBRegressor
+
+from ml.pipeline.preprocessing import build_preprocessing_pipeline
 
 
 def optimize_xgboost(
@@ -16,7 +19,7 @@ def optimize_xgboost(
     cv: int = 5,
     random_state: int = 42,
 ) -> dict:
-    """Optimize an XGBoost model using Optuna."""
+    """Optimize XGBoost with leakage-safe preprocessing."""
 
     if task_type not in {"classification", "regression"}:
         raise ValueError(
@@ -31,6 +34,11 @@ def optimize_xgboost(
     if cv < 2:
         raise ValueError(
             "cv must be at least 2."
+        )
+
+    if not isinstance(X, pd.DataFrame):
+        raise TypeError(
+            "X must be a pandas DataFrame."
         )
 
     if task_type == "classification":
@@ -141,8 +149,21 @@ def optimize_xgboost(
                 n_jobs=-1,
             )
 
+        pipeline = Pipeline(
+            steps=[
+                (
+                    "preprocessing",
+                    build_preprocessing_pipeline(X),
+                ),
+                (
+                    "model",
+                    model,
+                ),
+            ]
+        )
+
         scores = cross_val_score(
-            model,
+            pipeline,
             X,
             y,
             cv=splitter,

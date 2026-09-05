@@ -9,6 +9,9 @@ from sklearn.model_selection import (
     StratifiedKFold,
     cross_val_score,
 )
+from sklearn.pipeline import Pipeline
+
+from ml.pipeline.preprocessing import build_preprocessing_pipeline
 
 
 def optimize_random_forest(
@@ -19,7 +22,7 @@ def optimize_random_forest(
     cv: int = 5,
     random_state: int = 42,
 ) -> dict:
-    """Optimize a Random Forest model using Optuna."""
+    """Optimize a Random Forest model with leakage-safe preprocessing."""
 
     if task_type not in {"classification", "regression"}:
         raise ValueError(
@@ -36,6 +39,11 @@ def optimize_random_forest(
             "cv must be at least 2."
         )
 
+    if not isinstance(X, pd.DataFrame):
+        raise TypeError(
+            "X must be a pandas DataFrame."
+        )
+
     if task_type == "classification":
         splitter = StratifiedKFold(
             n_splits=cv,
@@ -44,7 +52,6 @@ def optimize_random_forest(
         )
 
         scoring = "f1_weighted"
-        direction = "maximize"
 
     else:
         splitter = KFold(
@@ -54,7 +61,6 @@ def optimize_random_forest(
         )
 
         scoring = "neg_root_mean_squared_error"
-        direction = "maximize"
 
     def objective(trial: optuna.Trial) -> float:
         n_estimators = trial.suggest_int(
@@ -109,8 +115,21 @@ def optimize_random_forest(
                 n_jobs=-1,
             )
 
+        pipeline = Pipeline(
+            steps=[
+                (
+                    "preprocessing",
+                    build_preprocessing_pipeline(X),
+                ),
+                (
+                    "model",
+                    model,
+                ),
+            ]
+        )
+
         scores = cross_val_score(
-            model,
+            pipeline,
             X,
             y,
             cv=splitter,
@@ -121,7 +140,7 @@ def optimize_random_forest(
         return scores.mean()
 
     study = optuna.create_study(
-        direction=direction,
+        direction="maximize",
         sampler=optuna.samplers.TPESampler(
             seed=random_state,
         ),
