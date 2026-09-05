@@ -125,6 +125,31 @@ def test_ml_pipeline_runs_end_to_end():
 
     assert len(result["leaderboard"]) == 3
 
+    assert "explainability" in result
+
+    explainability = result["explainability"]
+
+    assert "feature_importance" in explainability
+    assert "shap_values" in explainability
+    assert "transformed_data" in explainability
+    assert "feature_names" in explainability
+
+    assert len(
+        explainability["feature_importance"]
+    ) == len(
+        explainability["feature_names"]
+    )
+
+    assert (
+        explainability["transformed_data"].shape[1]
+        == len(explainability["feature_names"])
+    )
+
+    assert all(
+        explainability["feature_importance"]["importance"]
+        >= 0
+    )
+
 
 def test_ml_pipeline_detects_regression():
     dataframe = pd.DataFrame(

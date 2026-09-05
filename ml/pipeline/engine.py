@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from ml.explainability import explain_preprocessed_model
 from ml.models import (
     build_model_leaderboard,
     cross_validate_models,
@@ -126,6 +127,12 @@ class MLPipeline:
             task_type,
         )
 
+        explainability = explain_preprocessed_model(
+            best_model["model"],
+            preprocessing_pipeline,
+            X_test,
+        )
+
         artifact_path = save_model_artifact(
             best_model["model"],
             preprocessing_pipeline,
@@ -143,5 +150,6 @@ class MLPipeline:
             "optimization": optimization_results,
             "optimized_evaluation": optimized_evaluation,
             "best_model": best_model,
+            "explainability": explainability,
             "artifact_path": artifact_path,
         }
