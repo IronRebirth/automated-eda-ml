@@ -4,23 +4,32 @@ from ml.explainability import (
     build_explainability_summary,
     explain_preprocessed_model,
     generate_explainability_insights,
+    validate_explainability_output,
 )
 from ml.models import (
     build_model_leaderboard,
     cross_validate_models,
     evaluate_models,
     evaluate_optimized_models,
+    get_classification_models,
+    get_regression_models,
+    save_model_artifact,
     select_best_model,
     train_models,
 )
-from ml.models.persistence import save_model_artifact
 from ml.optimization import (
     optimize_random_forest,
     optimize_xgboost,
 )
-from ml.pipeline.preprocessing import build_preprocessing_pipeline
-from ml.pipeline.splitter import split_features_target
-from ml.pipeline.task_detection import detect_task_type
+from ml.pipeline.preprocessing import (
+    build_preprocessing_pipeline,
+)
+from ml.pipeline.splitter import (
+    split_features_target,
+)
+from ml.pipeline.task_detection import (
+    detect_task_type,
+)
 
 
 class MLPipeline:
@@ -48,7 +57,13 @@ class MLPipeline:
         self,
         artifact_path: str | None = None,
     ) -> dict:
-        """Run the complete machine learning pipeline."""
+        """Run the complete automated ML pipeline."""
+
+        final_artifact_path = (
+            artifact_path
+            if artifact_path is not None
+            else self.artifact_path
+        )
 
         task_type = detect_task_type(
             self.df,
@@ -83,6 +98,17 @@ class MLPipeline:
             )
         )
 
+        if task_type == "classification":
+            models = get_classification_models()
+
+        elif task_type == "regression":
+            models = get_regression_models()
+
+        else:
+            raise ValueError(
+                f"Unsupported task type: {task_type}"
+            )
+
         trained_models = train_models(
             X_train_transformed,
             y_train,
@@ -98,7 +124,7 @@ class MLPipeline:
 
         cross_validation_results = (
             cross_validate_models(
-                trained_models,
+                models,
                 X_train,
                 y_train,
                 task_type,
@@ -155,12 +181,10 @@ class MLPipeline:
             task_type,
         )
 
-        explainability = (
-            explain_preprocessed_model(
-                best_model["model"],
-                preprocessing_pipeline,
-                X_test,
-            )
+        explainability = explain_preprocessed_model(
+            best_model["model"],
+            preprocessing_pipeline,
+            X_test,
         )
 
         explainability["summary"] = (
@@ -179,10 +203,8 @@ class MLPipeline:
             )
         )
 
-        final_artifact_path = (
-            artifact_path
-            if artifact_path is not None
-            else self.artifact_path
+        validate_explainability_output(
+            explainability
         )
 
         if final_artifact_path is not None:
@@ -197,12 +219,14 @@ class MLPipeline:
             "target_column": self.target_column,
             "models": trained_models,
             "evaluation": evaluation_results,
-            "cross_validation": cross_validation_results,
+            "cross_validation": (
+                cross_validation_results
+            ),
+            "leaderboard": leaderboard,
             "optimization": optimization_results,
             "optimized_evaluation": (
                 optimized_evaluation_results
             ),
-            "leaderboard": leaderboard,
             "best_model": best_model,
             "explainability": explainability,
             "artifact_path": (
