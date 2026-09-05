@@ -142,6 +142,39 @@ def test_ml_pipeline_includes_hyperparameter_optimization():
         "predict",
     )
 
+    assert "optimized_evaluation" in result
+
+    assert "random_forest" in result["optimized_evaluation"]
+    assert "xgboost" in result["optimized_evaluation"]
+
+    assert "accuracy" in result["optimized_evaluation"][
+        "random_forest"
+    ]
+
+    assert "f1" in result["optimized_evaluation"][
+        "random_forest"
+    ]
+
+    assert "accuracy" in result["optimized_evaluation"][
+        "xgboost"
+    ]
+
+    assert "f1" in result["optimized_evaluation"][
+        "xgboost"
+    ]
+
+    assert "best_model" in result
+
+    assert result["best_model"]["model_name"] in {
+        "random_forest",
+        "xgboost",
+    }
+
+    assert result["best_model"]["model"] is not None
+    assert result["best_model"]["metric"] == "f1"
+    assert result["best_model"]["score"] is not None
+    assert "metrics" in result["best_model"]
+
 
 def test_ml_pipeline_optimization_supports_regression():
     dataframe = pd.DataFrame(
@@ -239,3 +272,36 @@ def test_ml_pipeline_optimization_supports_regression():
     assert result["optimization"]["xgboost"][
         "n_trials"
     ] == 2
+
+    assert "optimized_evaluation" in result
+
+    assert "random_forest" in result["optimized_evaluation"]
+    assert "xgboost" in result["optimized_evaluation"]
+
+    assert "mae" in result["optimized_evaluation"][
+        "random_forest"
+    ]
+
+    assert "rmse" in result["optimized_evaluation"][
+        "random_forest"
+    ]
+
+    assert "mae" in result["optimized_evaluation"][
+        "xgboost"
+    ]
+
+    assert "rmse" in result["optimized_evaluation"][
+        "xgboost"
+    ]
+
+    assert "best_model" in result
+
+    assert result["best_model"]["model_name"] in {
+        "random_forest",
+        "xgboost",
+    }
+
+    assert result["best_model"]["model"] is not None
+    assert result["best_model"]["metric"] == "rmse"
+    assert result["best_model"]["score"] is not None
+    assert "metrics" in result["best_model"]

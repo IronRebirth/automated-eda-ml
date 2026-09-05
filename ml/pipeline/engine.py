@@ -4,6 +4,8 @@ from ml.models import (
     build_model_leaderboard,
     cross_validate_models,
     evaluate_models,
+    evaluate_optimized_models,
+    select_best_model,
     train_models,
 )
 from ml.optimization import (
@@ -104,6 +106,21 @@ class MLPipeline:
                 random_state=self.random_state,
             )
 
+        optimized_evaluation = evaluate_optimized_models(
+            optimization_results,
+            X_train_transformed,
+            y_train,
+            X_test_transformed,
+            y_test,
+            task_type,
+        )
+
+        best_model = select_best_model(
+            optimization_results,
+            optimized_evaluation,
+            task_type,
+        )
+
         return {
             "task_type": task_type,
             "target_column": self.target_column,
@@ -113,4 +130,6 @@ class MLPipeline:
             "cross_validation": cross_validation_results,
             "leaderboard": leaderboard,
             "optimization": optimization_results,
+            "optimized_evaluation": optimized_evaluation,
+            "best_model": best_model,
         }
