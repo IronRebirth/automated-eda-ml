@@ -59,6 +59,14 @@ def build_valid_output() -> dict:
         "insights": [
             "'age' is the most influential feature in the model.",
         ],
+        "metadata": {
+            "method": "SHAP",
+            "model": "xgboost",
+            "task_type": "classification",
+            "feature_count": 2,
+            "top_features_count": 2,
+            "preprocessing_applied": True,
+        },
     }
 
 

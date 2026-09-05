@@ -1,6 +1,7 @@
 import pandas as pd
 
 from ml.explainability import (
+    build_explainability_metadata,
     build_explainability_summary,
     explain_preprocessed_model,
     generate_explainability_insights,
@@ -200,6 +201,24 @@ class MLPipeline:
                 explainability[
                     "feature_importance"
                 ]
+            )
+        )
+
+        explainability["metadata"] = (
+            build_explainability_metadata(
+                explainability[
+                    "feature_importance"
+                ],
+                model_name=best_model[
+                    "model_name"
+                ],
+                task_type=task_type,
+                preprocessing_applied=True,
+                top_features_count=(
+                    explainability[
+                        "summary"
+                    ]["top_n"]
+                ),
             )
         )
 
