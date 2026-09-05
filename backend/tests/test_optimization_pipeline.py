@@ -1,9 +1,12 @@
+import joblib
 import pandas as pd
 
 from ml.pipeline import MLPipeline
 
 
-def test_ml_pipeline_includes_hyperparameter_optimization():
+def test_ml_pipeline_includes_hyperparameter_optimization(
+    tmp_path,
+):
     dataframe = pd.DataFrame(
         {
             "age": [
@@ -97,6 +100,10 @@ def test_ml_pipeline_includes_hyperparameter_optimization():
         }
     )
 
+    artifact_path = (
+        tmp_path / "artifacts" / "best_model.joblib"
+    )
+
     pipeline = MLPipeline(
         dataframe,
         target_column="churn",
@@ -104,6 +111,7 @@ def test_ml_pipeline_includes_hyperparameter_optimization():
         random_state=42,
         cv=3,
         optimization_trials=2,
+        artifact_path=artifact_path,
     )
 
     result = pipeline.run()
@@ -175,8 +183,26 @@ def test_ml_pipeline_includes_hyperparameter_optimization():
     assert result["best_model"]["score"] is not None
     assert "metrics" in result["best_model"]
 
+    assert "artifact_path" in result
+    assert result["artifact_path"] == str(
+        artifact_path
+    )
 
-def test_ml_pipeline_optimization_supports_regression():
+    assert artifact_path.exists()
+
+    artifact = joblib.load(artifact_path)
+
+    assert isinstance(artifact, dict)
+    assert "model" in artifact
+    assert "preprocessing" in artifact
+
+    assert artifact["model"] is not None
+    assert artifact["preprocessing"] is not None
+
+
+def test_ml_pipeline_optimization_supports_regression(
+    tmp_path,
+):
     dataframe = pd.DataFrame(
         {
             "age": [
@@ -248,6 +274,10 @@ def test_ml_pipeline_optimization_supports_regression():
         }
     )
 
+    artifact_path = (
+        tmp_path / "artifacts" / "best_model.joblib"
+    )
+
     pipeline = MLPipeline(
         dataframe,
         target_column="salary",
@@ -255,6 +285,7 @@ def test_ml_pipeline_optimization_supports_regression():
         random_state=42,
         cv=3,
         optimization_trials=2,
+        artifact_path=artifact_path,
     )
 
     result = pipeline.run()
@@ -305,3 +336,19 @@ def test_ml_pipeline_optimization_supports_regression():
     assert result["best_model"]["metric"] == "rmse"
     assert result["best_model"]["score"] is not None
     assert "metrics" in result["best_model"]
+
+    assert "artifact_path" in result
+    assert result["artifact_path"] == str(
+        artifact_path
+    )
+
+    assert artifact_path.exists()
+
+    artifact = joblib.load(artifact_path)
+
+    assert isinstance(artifact, dict)
+    assert "model" in artifact
+    assert "preprocessing" in artifact
+
+    assert artifact["model"] is not None
+    assert artifact["preprocessing"] is not None

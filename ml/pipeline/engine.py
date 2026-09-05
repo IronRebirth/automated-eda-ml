@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 
 from ml.models import (
@@ -5,6 +7,7 @@ from ml.models import (
     cross_validate_models,
     evaluate_models,
     evaluate_optimized_models,
+    save_model_artifact,
     select_best_model,
     train_models,
 )
@@ -28,6 +31,7 @@ class MLPipeline:
         random_state: int = 42,
         cv: int = 5,
         optimization_trials: int = 20,
+        artifact_path: str | Path = "artifacts/best_model.joblib",
     ):
         self.df = dataframe
         self.target_column = target_column
@@ -35,6 +39,7 @@ class MLPipeline:
         self.random_state = random_state
         self.cv = cv
         self.optimization_trials = optimization_trials
+        self.artifact_path = Path(artifact_path)
 
     def run(self) -> dict:
         """Execute the complete automated ML pipeline."""
@@ -121,6 +126,12 @@ class MLPipeline:
             task_type,
         )
 
+        artifact_path = save_model_artifact(
+            best_model["model"],
+            preprocessing_pipeline,
+            self.artifact_path,
+        )
+
         return {
             "task_type": task_type,
             "target_column": self.target_column,
@@ -132,4 +143,5 @@ class MLPipeline:
             "optimization": optimization_results,
             "optimized_evaluation": optimized_evaluation,
             "best_model": best_model,
+            "artifact_path": artifact_path,
         }
