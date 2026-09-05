@@ -189,6 +189,24 @@ def test_ml_pipeline_runs_end_to_end():
         for insight in insights
     )
 
+    # 5.9: explainability metadata
+    assert "metadata" in explainability
+
+    metadata = explainability["metadata"]
+
+    assert metadata["method"] == "SHAP"
+    assert metadata["model"] == result[
+        "best_model"
+    ]["model_name"]
+    assert metadata["task_type"] == "classification"
+    assert metadata["feature_count"] == len(
+        explainability["feature_names"]
+    )
+    assert metadata["top_features_count"] == (
+        summary["top_n"]
+    )
+    assert metadata["preprocessing_applied"] is True
+
 
 def test_ml_pipeline_detects_regression():
     dataframe = pd.DataFrame(
@@ -275,3 +293,21 @@ def test_ml_pipeline_detects_regression():
         list,
     )
     assert len(explainability["insights"]) > 0
+
+    # 5.9: explainability metadata
+    assert "metadata" in explainability
+
+    metadata = explainability["metadata"]
+
+    assert metadata["method"] == "SHAP"
+    assert metadata["model"] == result[
+        "best_model"
+    ]["model_name"]
+    assert metadata["task_type"] == "regression"
+    assert metadata["feature_count"] == len(
+        explainability["feature_names"]
+    )
+    assert metadata["top_features_count"] == (
+        explainability["summary"]["top_n"]
+    )
+    assert metadata["preprocessing_applied"] is True

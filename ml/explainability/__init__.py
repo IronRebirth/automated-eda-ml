@@ -1,6 +1,9 @@
 from .insights import (
     generate_explainability_insights,
 )
+from .metadata import (
+    build_explainability_metadata,
+)
 from .output import (
     build_explainability_summary,
 )
@@ -17,6 +20,7 @@ from .visualization import (
 )
 
 __all__ = [
+    "build_explainability_metadata",
     "build_explainability_summary",
     "explain_model",
     "explain_preprocessed_model",
