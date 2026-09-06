@@ -103,6 +103,61 @@ def _build_ml_run_response(
     }
 
 
+def _build_unified_analysis_response(
+    dataframe: pd.DataFrame,
+    target_column: str | None,
+    test_size: float,
+    random_state: int,
+) -> dict:
+    """Run profiling, quality, EDA, and optional ML analysis."""
+
+    profile = DatasetProfiler(
+        dataframe
+    ).profile()
+
+    quality = DataQualityAnalyzer(
+        dataframe
+    ).analyze()
+
+    eda_analyzer = EDAAnalyzer(
+        dataframe,
+        target_column=target_column,
+    )
+
+    eda = eda_analyzer.analyze()
+
+    eda["visualizations"] = (
+        _serialize_eda_visualizations(
+            eda["visualizations"]
+        )
+    )
+
+    ml_result = None
+
+    if target_column is not None:
+        pipeline = MLPipeline(
+            dataframe,
+            target_column=target_column,
+            test_size=test_size,
+            random_state=random_state,
+            cv=3,
+            optimization_trials=2,
+        )
+
+        result = pipeline.run()
+
+        ml_result = _build_ml_run_response(
+            result
+        )
+
+    return {
+        "profile": profile,
+        "quality": quality,
+        "eda": eda,
+        "ml": ml_result,
+    }
+
+
 @router.post("/upload")
 def upload_dataset(
     file: UploadFile = UPLOAD_FILE,
@@ -300,4 +355,67 @@ def predict_dataset(
     return {
         "filename": file.filename,
         "predictions": predictions.tolist(),
+    }
+
+
+@router.post("/analyze")
+def analyze_dataset(
+    file: UploadFile = UPLOAD_FILE,
+    target_column: str = TARGET_COLUMN,
+    test_size: float = TEST_SIZE,
+    random_state: int = RANDOM_STATE,
+) -> dict:
+    """Run unified dataset profiling, quality, EDA, and ML analysis."""
+
+    dataframe = _read_csv_file(file)
+
+    normalized_target = target_column.strip()
+
+    if normalized_target and normalized_target not in dataframe.columns:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Target column not found: "
+                f"{normalized_target}"
+            ),
+        )
+
+    if not 0 < test_size < 1:
+        raise HTTPException(
+            status_code=400,
+            detail="test_size must be between 0 and 1.",
+        )
+
+    try:
+        analysis = _build_unified_analysis_response(
+            dataframe=dataframe,
+            target_column=(
+                normalized_target
+                if normalized_target
+                else None
+            ),
+            test_size=test_size,
+            random_state=random_state,
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unified analysis failed: {exc}",
+        ) from exc
+
+    return {
+        "filename": file.filename,
+        "target_column": (
+            normalized_target
+            if normalized_target
+            else None
+        ),
+        "analysis": analysis,
     }

@@ -647,3 +647,159 @@ def test_predict_dataset_rejects_non_csv():
     assert response.json()["detail"] == (
         "Only CSV files are supported."
     )
+
+
+def test_analyze_dataset_with_target():
+    csv_content = (
+        "age,income,churn\n"
+        "25,30000,0\n"
+        "30,40000,0\n"
+        "35,50000,1\n"
+        "40,60000,1\n"
+        "45,70000,1\n"
+        "50,80000,1\n"
+        "28,35000,0\n"
+        "32,45000,0\n"
+        "38,55000,1\n"
+        "42,65000,1\n"
+    )
+
+    response = client.post(
+        "/datasets/analyze",
+        files={
+            "file": (
+                "customers.csv",
+                BytesIO(
+                    csv_content.encode("utf-8")
+                ),
+                "text/csv",
+            )
+        },
+        data={
+            "target_column": "churn",
+        },
+    )
+
+    assert response.status_code == 200
+
+    payload = response.json()
+
+    assert payload["filename"] == "customers.csv"
+    assert payload["target_column"] == "churn"
+
+    analysis = payload["analysis"]
+
+    assert "profile" in analysis
+    assert "quality" in analysis
+    assert "eda" in analysis
+    assert "ml" in analysis
+
+    assert analysis["profile"]["rows"] == 10
+    assert analysis["profile"]["columns"] == 3
+
+    assert analysis["quality"] is not None
+    assert analysis["eda"] is not None
+    assert analysis["ml"] is not None
+
+    assert analysis["ml"]["task_type"] == "classification"
+    assert analysis["ml"]["target_column"] == "churn"
+    assert "best_model" in analysis["ml"]
+    assert "explainability" in analysis["ml"]
+
+
+def test_analyze_dataset_without_target():
+    csv_content = (
+        "name,age,city\n"
+        "Alice,25,Dhaka\n"
+        "Bob,30,Chittagong\n"
+        "Charlie,35,Dhaka\n"
+    )
+
+    response = client.post(
+        "/datasets/analyze",
+        files={
+            "file": (
+                "customers.csv",
+                BytesIO(
+                    csv_content.encode("utf-8")
+                ),
+                "text/csv",
+            )
+        },
+    )
+
+    assert response.status_code == 200
+
+    payload = response.json()
+
+    assert payload["filename"] == "customers.csv"
+    assert payload["target_column"] is None
+
+    analysis = payload["analysis"]
+
+    assert analysis["profile"] is not None
+    assert analysis["quality"] is not None
+    assert analysis["eda"] is not None
+    assert analysis["ml"] is None
+
+    assert analysis["profile"]["rows"] == 3
+    assert analysis["profile"]["columns"] == 3
+
+
+def test_analyze_dataset_rejects_invalid_target():
+    csv_content = (
+        "age,income,churn\n"
+        "25,30000,0\n"
+        "30,40000,1\n"
+    )
+
+    response = client.post(
+        "/datasets/analyze",
+        files={
+            "file": (
+                "customers.csv",
+                BytesIO(
+                    csv_content.encode("utf-8")
+                ),
+                "text/csv",
+            )
+        },
+        data={
+            "target_column": "missing",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Target column not found: missing"
+    )
+
+
+def test_analyze_dataset_rejects_invalid_test_size():
+    csv_content = (
+        "age,income,churn\n"
+        "25,30000,0\n"
+        "30,40000,1\n"
+    )
+
+    response = client.post(
+        "/datasets/analyze",
+        files={
+            "file": (
+                "customers.csv",
+                BytesIO(
+                    csv_content.encode("utf-8")
+                ),
+                "text/csv",
+            )
+        },
+        data={
+            "target_column": "churn",
+            "test_size": "1.0",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "test_size must be between 0 and 1."
+    )
