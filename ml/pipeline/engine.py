@@ -34,6 +34,7 @@ from ml.pipeline.task_detection import (
 from ml.reporting import (
     build_analysis_report,
     serialize_analysis_report,
+    validate_serialized_report,
 )
 
 
@@ -269,6 +270,10 @@ class MLPipeline:
             serialize_analysis_report(
                 report
             )
+        )
+
+        validate_serialized_report(
+            result["serialized_report"]
         )
 
         return result
