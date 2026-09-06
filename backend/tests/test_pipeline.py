@@ -253,6 +253,36 @@ def test_ml_pipeline_runs_end_to_end():
 
     assert report["artifact"]["available"] is False
 
+    # 6.2: JSON-safe serialized report
+    assert "serialized_report" in result
+
+    serialized_report = result[
+        "serialized_report"
+    ]
+
+    assert isinstance(
+        serialized_report,
+        dict,
+    )
+
+    assert serialized_report["dataset"]["shape"] == {
+        "rows": 20,
+        "columns": 4,
+    }
+
+    assert isinstance(
+        serialized_report[
+            "explainability"
+        ]["feature_importance"],
+        list,
+    )
+
+    assert len(
+        serialized_report[
+            "explainability"
+        ]["feature_importance"]
+    ) > 0
+
 
 def test_ml_pipeline_detects_regression():
     dataframe = pd.DataFrame(
@@ -398,3 +428,33 @@ def test_ml_pipeline_detects_regression():
     )
 
     assert report["artifact"]["available"] is False
+
+    # 6.2: JSON-safe serialized report
+    assert "serialized_report" in result
+
+    serialized_report = result[
+        "serialized_report"
+    ]
+
+    assert isinstance(
+        serialized_report,
+        dict,
+    )
+
+    assert serialized_report["dataset"]["shape"] == {
+        "rows": 10,
+        "columns": 3,
+    }
+
+    assert isinstance(
+        serialized_report[
+            "explainability"
+        ]["feature_importance"],
+        list,
+    )
+
+    assert len(
+        serialized_report[
+            "explainability"
+        ]["feature_importance"]
+    ) > 0

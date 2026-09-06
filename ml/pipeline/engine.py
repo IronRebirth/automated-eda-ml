@@ -31,7 +31,10 @@ from ml.pipeline.splitter import (
 from ml.pipeline.task_detection import (
     detect_task_type,
 )
-from ml.reporting import build_analysis_report
+from ml.reporting import (
+    build_analysis_report,
+    serialize_analysis_report,
+)
 
 
 class MLPipeline:
@@ -256,9 +259,16 @@ class MLPipeline:
             ),
         }
 
-        result["report"] = build_analysis_report(
+        report = build_analysis_report(
             result,
             dataset_shape=self.df.shape,
+        )
+
+        result["report"] = report
+        result["serialized_report"] = (
+            serialize_analysis_report(
+                report
+            )
         )
 
         return result
