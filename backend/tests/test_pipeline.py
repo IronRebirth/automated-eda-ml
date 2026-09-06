@@ -150,7 +150,6 @@ def test_ml_pipeline_runs_end_to_end():
         >= 0
     )
 
-    # 5.7: structured explainability summary
     assert "summary" in explainability
 
     summary = explainability["summary"]
@@ -177,7 +176,6 @@ def test_ml_pipeline_runs_end_to_end():
         "low",
     }
 
-    # 5.7: human-readable explainability insights
     assert "insights" in explainability
 
     insights = explainability["insights"]
@@ -189,7 +187,6 @@ def test_ml_pipeline_runs_end_to_end():
         for insight in insights
     )
 
-    # 5.9: explainability metadata
     assert "metadata" in explainability
 
     metadata = explainability["metadata"]
@@ -206,6 +203,55 @@ def test_ml_pipeline_runs_end_to_end():
         summary["top_n"]
     )
     assert metadata["preprocessing_applied"] is True
+
+    # 6.1: unified analysis report
+    assert "report" in result
+
+    report = result["report"]
+
+    assert "dataset" in report
+    assert "data_quality" in report
+    assert "eda" in report
+    assert "modeling" in report
+    assert "explainability" in report
+    assert "artifact" in report
+
+    assert report["dataset"]["shape"] == {
+        "rows": 20,
+        "columns": 4,
+    }
+
+    assert (
+        report["dataset"]["target_column"]
+        == "churn"
+    )
+
+    assert (
+        report["modeling"]["task_type"]
+        == "classification"
+    )
+
+    assert (
+        report["modeling"]["best_model"]
+        == result["best_model"]
+    )
+
+    assert (
+        report["explainability"]["metadata"]
+        == explainability["metadata"]
+    )
+
+    assert (
+        report["explainability"]["summary"]
+        == explainability["summary"]
+    )
+
+    assert (
+        report["explainability"]["insights"]
+        == explainability["insights"]
+    )
+
+    assert report["artifact"]["available"] is False
 
 
 def test_ml_pipeline_detects_regression():
@@ -294,7 +340,6 @@ def test_ml_pipeline_detects_regression():
     )
     assert len(explainability["insights"]) > 0
 
-    # 5.9: explainability metadata
     assert "metadata" in explainability
 
     metadata = explainability["metadata"]
@@ -311,3 +356,45 @@ def test_ml_pipeline_detects_regression():
         explainability["summary"]["top_n"]
     )
     assert metadata["preprocessing_applied"] is True
+
+    # 6.1: unified analysis report
+    assert "report" in result
+
+    report = result["report"]
+
+    assert report["dataset"]["shape"] == {
+        "rows": 10,
+        "columns": 3,
+    }
+
+    assert (
+        report["dataset"]["target_column"]
+        == "salary"
+    )
+
+    assert (
+        report["modeling"]["task_type"]
+        == "regression"
+    )
+
+    assert (
+        report["modeling"]["best_model"]
+        == result["best_model"]
+    )
+
+    assert (
+        report["explainability"]["metadata"]
+        == explainability["metadata"]
+    )
+
+    assert (
+        report["explainability"]["summary"]
+        == explainability["summary"]
+    )
+
+    assert (
+        report["explainability"]["insights"]
+        == explainability["insights"]
+    )
+
+    assert report["artifact"]["available"] is False

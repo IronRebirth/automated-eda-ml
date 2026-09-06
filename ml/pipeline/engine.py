@@ -31,6 +31,7 @@ from ml.pipeline.splitter import (
 from ml.pipeline.task_detection import (
     detect_task_type,
 )
+from ml.reporting import build_analysis_report
 
 
 class MLPipeline:
@@ -233,7 +234,7 @@ class MLPipeline:
                 final_artifact_path,
             )
 
-        return {
+        result = {
             "task_type": task_type,
             "target_column": self.target_column,
             "models": trained_models,
@@ -254,3 +255,10 @@ class MLPipeline:
                 else None
             ),
         }
+
+        result["report"] = build_analysis_report(
+            result,
+            dataset_shape=self.df.shape,
+        )
+
+        return result
