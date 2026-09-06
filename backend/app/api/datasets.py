@@ -6,6 +6,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from plotly.utils import PlotlyJSONEncoder
 
 from ml.eda import EDAAnalyzer
+from ml.models import predict_from_artifact
 from ml.pipeline import MLPipeline
 from ml.profiling import DatasetProfiler
 from ml.quality import DataQualityAnalyzer
@@ -19,6 +20,7 @@ UPLOAD_FILE = File(...)
 TARGET_COLUMN = Form("")
 TEST_SIZE = Form(0.2)
 RANDOM_STATE = Form(42)
+ARTIFACT_PATH = Form("")
 
 
 def _read_csv_file(file: UploadFile) -> pd.DataFrame:
@@ -253,4 +255,49 @@ def run_ml_pipeline(
     return {
         "filename": file.filename,
         "run": _build_ml_run_response(result),
+    }
+
+
+@router.post("/predict")
+def predict_dataset(
+    file: UploadFile = UPLOAD_FILE,
+    artifact_path: str = ARTIFACT_PATH,
+) -> dict:
+    """Generate predictions from a saved model artifact."""
+
+    dataframe = _read_csv_file(file)
+
+    if not artifact_path.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Artifact path is required.",
+        )
+
+    try:
+        predictions = predict_from_artifact(
+            artifact_path,
+            dataframe,
+        )
+
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Prediction failed: {exc}",
+        ) from exc
+
+    return {
+        "filename": file.filename,
+        "predictions": predictions.tolist(),
     }
