@@ -1,5 +1,6 @@
 from io import BytesIO
 
+import pandas as pd
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
@@ -493,6 +494,152 @@ def test_run_ml_pipeline_rejects_non_csv():
         },
         data={
             "target_column": "churn",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Only CSV files are supported."
+    )
+
+
+def test_predict_dataset():
+    from sklearn.linear_model import LinearRegression
+    from sklearn.preprocessing import StandardScaler
+
+    from ml.models import save_model_artifact
+
+    preprocessing = StandardScaler()
+
+    training_data = pd.DataFrame(
+        {
+            "age": [20, 30, 40, 50],
+        }
+    )
+
+    preprocessing.fit(training_data)
+
+    model = LinearRegression()
+    model.fit(
+        preprocessing.transform(training_data),
+        [20000, 30000, 40000, 50000],
+    )
+
+    artifact_path = (
+        "artifacts/test_prediction_model.joblib"
+    )
+
+    save_model_artifact(
+        model,
+        preprocessing,
+        artifact_path,
+    )
+
+    csv_content = (
+        "age\n"
+        "25\n"
+        "35\n"
+        "45\n"
+    )
+
+    response = client.post(
+        "/datasets/predict",
+        files={
+            "file": (
+                "customers.csv",
+                BytesIO(
+                    csv_content.encode("utf-8")
+                ),
+                "text/csv",
+            )
+        },
+        data={
+            "artifact_path": artifact_path,
+        },
+    )
+
+    assert response.status_code == 200
+
+    payload = response.json()
+
+    assert payload["filename"] == "customers.csv"
+    assert len(payload["predictions"]) == 3
+
+
+def test_predict_dataset_rejects_missing_artifact_path():
+    csv_content = (
+        "age\n"
+        "25\n"
+        "35\n"
+    )
+
+    response = client.post(
+        "/datasets/predict",
+        files={
+            "file": (
+                "customers.csv",
+                BytesIO(
+                    csv_content.encode("utf-8")
+                ),
+                "text/csv",
+            )
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Artifact path is required."
+    )
+
+
+def test_predict_dataset_rejects_missing_artifact():
+    csv_content = (
+        "age\n"
+        "25\n"
+        "35\n"
+    )
+
+    response = client.post(
+        "/datasets/predict",
+        files={
+            "file": (
+                "customers.csv",
+                BytesIO(
+                    csv_content.encode("utf-8")
+                ),
+                "text/csv",
+            )
+        },
+        data={
+            "artifact_path": (
+                "artifacts/missing_model.joblib"
+            ),
+        },
+    )
+
+    assert response.status_code == 404
+    assert "Model artifact not found" in (
+        response.json()["detail"]
+    )
+
+
+def test_predict_dataset_rejects_non_csv():
+    response = client.post(
+        "/datasets/predict",
+        files={
+            "file": (
+                "customers.txt",
+                BytesIO(
+                    b"age\n"
+                    b"25\n"
+                ),
+                "text/plain",
+            )
+        },
+        data={
+            "artifact_path": (
+                "artifacts/missing_model.joblib"
+            ),
         },
     )
 
