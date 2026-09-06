@@ -147,3 +147,66 @@ def test_inspect_dataset_rejects_non_csv():
     assert response.json() == {
         "detail": "Only CSV files are supported.",
     }
+
+
+def test_quality_dataset():
+    csv_content = (
+        "name,age,city\n"
+        "Alice,25,Dhaka\n"
+        "Bob,30,Chittagong\n"
+        "Alice,25,Dhaka\n"
+        "Charlie,,Dhaka\n"
+    )
+
+    response = client.post(
+        "/datasets/quality",
+        files={
+            "file": (
+                "customers.csv",
+                BytesIO(
+                    csv_content.encode("utf-8")
+                ),
+                "text/csv",
+            )
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["filename"] == "customers.csv"
+
+    quality = data["quality"]
+
+    assert set(quality.keys()) == {
+        "missing_values",
+        "duplicates",
+        "cardinality",
+        "outliers",
+    }
+
+    assert quality["missing_values"] is not None
+    assert quality["duplicates"] is not None
+    assert quality["cardinality"] is not None
+    assert quality["outliers"] is not None
+
+
+def test_quality_dataset_rejects_non_csv():
+    response = client.post(
+        "/datasets/quality",
+        files={
+            "file": (
+                "customers.json",
+                BytesIO(
+                    b'{"name": "Alice"}'
+                ),
+                "application/json",
+            )
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Only CSV files are supported.",
+    }
