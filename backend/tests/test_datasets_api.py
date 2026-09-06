@@ -334,3 +334,169 @@ def test_eda_dataset_rejects_non_csv():
     assert response.json() == {
         "detail": "Only CSV files are supported.",
     }
+
+
+def test_run_ml_pipeline():
+    csv_content = (
+        "age,income,churn\n"
+        "25,30000,0\n"
+        "30,40000,0\n"
+        "35,50000,1\n"
+        "40,60000,1\n"
+        "45,70000,1\n"
+        "50,80000,1\n"
+        "28,35000,0\n"
+        "32,45000,0\n"
+        "38,55000,1\n"
+        "42,65000,1\n"
+    )
+
+    response = client.post(
+        "/datasets/run",
+        files={
+            "file": (
+                "customers.csv",
+                BytesIO(
+                    csv_content.encode("utf-8")
+                ),
+                "text/csv",
+            )
+        },
+        data={
+            "target_column": "churn",
+        },
+    )
+
+    assert response.status_code == 200
+
+    payload = response.json()
+
+    assert payload["filename"] == "customers.csv"
+
+    run = payload["run"]
+
+    assert run["task_type"] == "classification"
+    assert run["target_column"] == "churn"
+
+    assert "evaluation" in run
+    assert "cross_validation" in run
+    assert "leaderboard" in run
+    assert "optimized_evaluation" in run
+    assert "best_model" in run
+    assert "explainability" in run
+
+    assert "model_name" in run["best_model"]
+    assert "metrics" in run["best_model"]
+
+    assert "summary" in run["explainability"]
+    assert "insights" in run["explainability"]
+    assert "metadata" in run["explainability"]
+
+
+def test_run_ml_pipeline_rejects_missing_target():
+    csv_content = (
+        "age,income,churn\n"
+        "25,30000,0\n"
+        "30,40000,1\n"
+    )
+
+    response = client.post(
+        "/datasets/run",
+        files={
+            "file": (
+                "customers.csv",
+                BytesIO(
+                    csv_content.encode("utf-8")
+                ),
+                "text/csv",
+            )
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Target column is required."
+    )
+
+
+def test_run_ml_pipeline_rejects_invalid_target():
+    csv_content = (
+        "age,income,churn\n"
+        "25,30000,0\n"
+        "30,40000,1\n"
+    )
+
+    response = client.post(
+        "/datasets/run",
+        files={
+            "file": (
+                "customers.csv",
+                BytesIO(
+                    csv_content.encode("utf-8")
+                ),
+                "text/csv",
+            )
+        },
+        data={
+            "target_column": "missing",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Target column not found: missing"
+    )
+
+
+def test_run_ml_pipeline_rejects_invalid_test_size():
+    csv_content = (
+        "age,income,churn\n"
+        "25,30000,0\n"
+        "30,40000,1\n"
+    )
+
+    response = client.post(
+        "/datasets/run",
+        files={
+            "file": (
+                "customers.csv",
+                BytesIO(
+                    csv_content.encode("utf-8")
+                ),
+                "text/csv",
+            )
+        },
+        data={
+            "target_column": "churn",
+            "test_size": "1.0",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "test_size must be between 0 and 1."
+    )
+
+
+def test_run_ml_pipeline_rejects_non_csv():
+    response = client.post(
+        "/datasets/run",
+        files={
+            "file": (
+                "customers.txt",
+                BytesIO(
+                    b"age,income,churn\n"
+                    b"25,30000,0\n"
+                ),
+                "text/plain",
+            )
+        },
+        data={
+            "target_column": "churn",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Only CSV files are supported."
+    )
