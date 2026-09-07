@@ -4,7 +4,10 @@ from io import BytesIO
 import pandas as pd
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from plotly.utils import PlotlyJSONEncoder
+from sqlalchemy.orm import Session
 
+from backend.app.db.database import SessionLocal
+from backend.app.services.datasets import create_dataset_record
 from ml.eda import EDAAnalyzer
 from ml.models import predict_from_artifact
 from ml.pipeline import MLPipeline
@@ -162,14 +165,35 @@ def _build_unified_analysis_response(
 def upload_dataset(
     file: UploadFile = UPLOAD_FILE,
 ) -> dict:
-    """Upload a CSV dataset and return basic metadata."""
+    """Upload a CSV dataset and persist its metadata."""
 
     dataframe = _read_csv_file(file)
 
+    db: Session = SessionLocal()
+
+    try:
+        dataset = create_dataset_record(
+            db=db,
+            filename=file.filename,
+            dataframe=dataframe,
+        )
+
+    except Exception as exc:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to persist dataset: {exc}",
+        ) from exc
+
+    finally:
+        db.close()
+
     return {
-        "filename": file.filename,
-        "rows": len(dataframe),
-        "columns": len(dataframe.columns),
+        "dataset_id": dataset.id,
+        "filename": dataset.filename,
+        "rows": dataset.rows,
+        "columns": dataset.columns,
         "column_names": dataframe.columns.tolist(),
     }
 
@@ -219,35 +243,38 @@ def analyze_dataset_eda(
 
     dataframe = _read_csv_file(file)
 
-    if (
-        target_column is not None
-        and target_column not in dataframe.columns
-    ):
+    normalized_target = (
+        target_column.strip()
+        if target_column
+        else None
+    )
+
+    if normalized_target and normalized_target not in dataframe.columns:
         raise HTTPException(
             status_code=400,
             detail=(
                 f"Target column not found: "
-                f"{target_column}"
+                f"{normalized_target}"
             ),
         )
 
     analyzer = EDAAnalyzer(
         dataframe,
-        target_column=target_column,
+        target_column=normalized_target,
     )
 
-    eda_report = analyzer.analyze()
+    eda = analyzer.analyze()
 
-    eda_report["visualizations"] = (
+    eda["visualizations"] = (
         _serialize_eda_visualizations(
-            eda_report["visualizations"]
+            eda["visualizations"]
         )
     )
 
     return {
         "filename": file.filename,
-        "target_column": target_column,
-        "eda": eda_report,
+        "target_column": normalized_target,
+        "eda": eda,
     }
 
 
@@ -258,22 +285,24 @@ def run_ml_pipeline(
     test_size: float = TEST_SIZE,
     random_state: int = RANDOM_STATE,
 ) -> dict:
-    """Run the automated ML pipeline on an uploaded CSV dataset."""
+    """Upload a CSV dataset and run the automated ML pipeline."""
 
     dataframe = _read_csv_file(file)
 
-    if not target_column.strip():
+    normalized_target = target_column.strip()
+
+    if not normalized_target:
         raise HTTPException(
             status_code=400,
             detail="Target column is required.",
         )
 
-    if target_column not in dataframe.columns:
+    if normalized_target not in dataframe.columns:
         raise HTTPException(
             status_code=400,
             detail=(
                 f"Target column not found: "
-                f"{target_column}"
+                f"{normalized_target}"
             ),
         )
 
@@ -286,7 +315,7 @@ def run_ml_pipeline(
     try:
         pipeline = MLPipeline(
             dataframe,
-            target_column=target_column,
+            target_column=normalized_target,
             test_size=test_size,
             random_state=random_state,
             cv=3,
@@ -294,6 +323,13 @@ def run_ml_pipeline(
         )
 
         result = pipeline.run()
+
+        return {
+            "filename": file.filename,
+            "run": _build_ml_run_response(
+                result
+            ),
+        }
 
     except ValueError as exc:
         raise HTTPException(
@@ -307,22 +343,19 @@ def run_ml_pipeline(
             detail=f"ML pipeline failed: {exc}",
         ) from exc
 
-    return {
-        "filename": file.filename,
-        "run": _build_ml_run_response(result),
-    }
-
 
 @router.post("/predict")
 def predict_dataset(
     file: UploadFile = UPLOAD_FILE,
     artifact_path: str = ARTIFACT_PATH,
 ) -> dict:
-    """Generate predictions from a saved model artifact."""
+    """Generate predictions using a saved model artifact."""
 
     dataframe = _read_csv_file(file)
 
-    if not artifact_path.strip():
+    normalized_artifact_path = artifact_path.strip()
+
+    if not normalized_artifact_path:
         raise HTTPException(
             status_code=400,
             detail="Artifact path is required.",
@@ -330,7 +363,7 @@ def predict_dataset(
 
     try:
         predictions = predict_from_artifact(
-            artifact_path,
+            normalized_artifact_path,
             dataframe,
         )
 

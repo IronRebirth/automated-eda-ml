@@ -29,16 +29,17 @@ def test_upload_dataset():
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "filename": "customers.csv",
-        "rows": 2,
-        "columns": 3,
-        "column_names": [
-            "name",
-            "age",
-            "city",
-        ],
-    }
+    response_data = response.json()
+
+    assert response_data["dataset_id"] > 0
+    assert response_data["filename"] == "customers.csv"
+    assert response_data["rows"] == 2
+    assert response_data["columns"] == 3
+    assert response_data["column_names"] == [
+        "name",
+        "age",
+        "city",
+    ]
 
 
 def test_upload_dataset_rejects_non_csv():
