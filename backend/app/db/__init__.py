@@ -5,12 +5,13 @@ from backend.app.db.database import (
     get_db,
     init_db,
 )
-from backend.app.db.models import DatabaseHealth, Dataset
+from backend.app.db.models import DatabaseHealth, Dataset, Run
 
 __all__ = [
     "Base",
     "DatabaseHealth",
     "Dataset",
+    "Run",
     "SessionLocal",
     "engine",
     "get_db",
