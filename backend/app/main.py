@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 import backend.app.db.models  # noqa: F401
 from backend.app.api.datasets import router as datasets_router
+from backend.app.api.runs import router as runs_router
 from backend.app.db.database import init_db
 
 
@@ -24,6 +25,7 @@ app = FastAPI(
 
 
 app.include_router(datasets_router)
+app.include_router(runs_router)
 
 
 @app.get("/health")
