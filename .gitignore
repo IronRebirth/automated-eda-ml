@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# Data
+data/raw/*
+data/processed/*
+datasets/raw/*
+datasets/processed/*
+
+# ML artifacts
+artifacts/
+mlruns/
+models/
+*.pkl
+*.joblib
+
+# Reports
+reports/generated/*
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+.next/
+
+# Temporary
+tmp/
+temp/

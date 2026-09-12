@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f8fa;
+  --foreground: #17191c;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-muted: #f1f3f5;
+  --border: #e3e6e8;
+  --border-strong: #d4d8dc;
+  --muted: #6b7178;
+  --muted-foreground: #8a9097;
+  --accent: #17191c;
+  --accent-foreground: #ffffff;
+  --success: #16794c;
+  --success-surface: #eaf7f0;
+  --warning: #9a6700;
+  --warning-surface: #fff7df;
+  --danger: #c43d3d;
+  --danger-surface: #fff0f0;
+  --ring: rgba(23, 25, 28, 0.14);
+}
+
+.dark {
+  --background: #0b0d0f;
+  --foreground: #f1f3f5;
+  --surface: #111418;
+  --surface-elevated: #171a1f;
+  --surface-muted: #1b1f24;
+  --border: #292e34;
+  --border-strong: #373d45;
+  --muted: #9aa1a9;
+  --muted-foreground: #707780;
+  --accent: #f1f3f5;
+  --accent-foreground: #111418;
+  --success: #54c98c;
+  --success-surface: #10291e;
+  --warning: #e8b44f;
+  --warning-surface: #2b2110;
+  --danger: #f27777;
+  --danger-surface: #2b1515;
+  --ring: rgba(241, 243, 245, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--background);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+.surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.surface-elevated {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.dark .surface-elevated {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.15),
+    0 12px 36px rgba(0, 0, 0, 0.2);
+}
+
+.subtle-grid {
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
